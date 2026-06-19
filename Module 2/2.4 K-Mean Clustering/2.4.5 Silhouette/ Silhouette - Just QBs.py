@@ -8,7 +8,7 @@ Summer 2026
 
 
 global RANDOMSEED
-RANDOMSEED = 123123
+RANDOMSEED = 333
 
 
 
@@ -19,6 +19,8 @@ import numpy as np
 import statistics
 import math
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+import matplotlib.pyplot as plt
 
 
 ## First let's make a few dictionaries of useful info we'll use through
@@ -328,269 +330,133 @@ def score_prediction(predicted_percentiles, actual_percentiles):
 
 
 
-def main():
+def main_silhouette():
 
-    RANDOMSEED = 123123
+    K_MIN = 2
+    K_MAX = 50
 
-    random.seed(
-        RANDOMSEED
+    datacube_filename = DATACUBES["QB"]
+
+    print("Loading QB careers...")
+
+    player_careers = (
+        get_all_player_careers(
+            datacube_filename
+        )
     )
 
-    NUM_EXPERIMENTS = 1000
-
-    K_VALUES = [
-        5, 10, 15, 20, 25,
-        30, 35, 40, 45, 50
-    ]
-
-    print("Building player pool...")
-
-    all_players = build_player_pool()
-
-    print("Generating test cases...")
-
-    test_cases = []
-
-    for _ in range(
-            NUM_EXPERIMENTS):
-
-        years_revealed = random.randint(
-            3,
-            10
+    player_names, career_matrix = (
+        pad_careers_for_clustering(
+            player_careers
         )
+    )
 
-        eligible_players = [
-
-            (
-                datacube_filename,
-                player
-            )
-
-            for (
-                datacube_filename,
-                player,
-                career_length
-            ) in all_players
-
-            if career_length >= years_revealed
-
-        ]
-
-        datacube_filename, chosen_player = (
-            random.choice(
-                eligible_players
-            )
-        )
-
-        test_cases.append(
-            (
-                datacube_filename,
-                chosen_player,
-                years_revealed
-            )
-        )
-
-    results = []
+    silhouette_scores = []
+    K_values = []
 
     print()
-    print("Testing K values...")
+    print("Running silhouette analysis...")
     print()
 
-    for K in K_VALUES:
+    for K in range(K_MIN, K_MAX + 1):
 
-        print(
-            f"Building clusters "
-            f"(K={K})..."
+        kmeans = KMeans(
+            n_clusters=K,
+            random_state=RANDOMSEED,
+            n_init=10
         )
 
-        cluster_data = {}
-
-        for datacube_filename in (
-                DATACUBES.values()):
-
-            player_careers = (
-                get_all_player_careers(
-                    datacube_filename
-                )
-            )
-
-            player_names, cluster_labels, kmeans = (
-                build_clusters(
-                    datacube_filename,
-                    K
-                )
-            )
-
-            cluster_data[
-                datacube_filename
-            ] = (
-                player_careers,
-                player_names,
-                cluster_labels,
-                kmeans
-            )
-
-        retirement_errors = []
-        prediction_errors = []
-
-        print(
-            f"Testing K={K}"
-        )
-
-        for test_num, (
-                datacube_filename,
-                chosen_player,
-                years_revealed
-                ) in enumerate(
-                    test_cases,
-                    start=1):
-
-            (
-                player_careers,
-                player_names,
-                cluster_labels,
-                kmeans
-            ) = cluster_data[
-                datacube_filename
-            ]
-
-            chosen_player_percentiles = (
-                get_chosen_player_percentiles(
-                    chosen_player,
-                    datacube_filename
-                )
-            )
-
-            ranked_clusters = (
-                rank_clusters_for_player(
-                    chosen_player_percentiles,
-                    years_revealed,
-                    kmeans
-                )
-            )
-
-            predicted_future_seasons = (
-                predict_num_future_seasons_from_clusters(
-                    ranked_clusters,
-                    chosen_player,
-                    player_names,
-                    cluster_labels,
-                    player_careers,
-                    years_revealed
-                )
-            )
-
-            if predicted_future_seasons is None:
-                continue
-
-            predicted_percentiles = (
-                predict_future_percentiles_from_clusters(
-                    ranked_clusters,
-                    chosen_player,
-                    player_names,
-                    cluster_labels,
-                    player_careers,
-                    years_revealed,
-                    predicted_future_seasons
-                )
-            )
-
-            actual_future_percentiles = (
-                chosen_player_percentiles[
-                    years_revealed:
-                ]
-            )
-
-            retirement_error, prediction_error = (
-                score_prediction(
-                    predicted_percentiles,
-                    actual_future_percentiles
-                )
-            )
-
-            retirement_errors.append(
-                retirement_error
-            )
-
-            if prediction_error is not None:
-
-                prediction_errors.append(
-                    prediction_error
-                )
-
-            if test_num % 50 == 0:
-
-                percent = (
-                    100.0
-                    * test_num
-                    / NUM_EXPERIMENTS
-                )
-
-                print(
-                    f"\rK={K}: "
-                    f"{test_num:,}/"
-                    f"{NUM_EXPERIMENTS:,} "
-                    f"({percent:.1f}%)",
-                    end=""
-                )
-
-        mean_retirement_error = (
-            statistics.mean(
-                retirement_errors
+        labels = (
+            kmeans.fit_predict(
+                career_matrix
             )
         )
 
-        mean_prediction_error = (
-            statistics.mean(
-                prediction_errors
+        score = (
+            silhouette_score(
+                career_matrix,
+                labels
             )
         )
 
-        results.append(
-            (
-                K,
-                mean_retirement_error,
-                mean_prediction_error
-            )
+        silhouette_scores.append(
+            score
         )
 
-        print()
-        print(
-            f"Mean Retirement Error: "
-            f"{mean_retirement_error:.4f}"
+        K_values.append(
+            K
         )
 
         print(
-            f"Mean Prediction Error: "
-            f"{mean_prediction_error:.4f}"
+            f"K = {K:2d}   "
+            f"Silhouette = {score:.4f}"
         )
 
-        print()
+    best_index = (
+        silhouette_scores.index(
+            max(silhouette_scores)
+        )
+    )
+
+    best_K = (
+        K_values[best_index]
+    )
 
     print()
-    print()
-    print("FINAL RESULTS")
-
-
     print(
-        "K    Retirement    Prediction"
+        "Best K:",
+        best_K
     )
 
     print(
-        "--------------------------------"
+        "Best Silhouette Score:",
+        max(silhouette_scores)
     )
 
-    for (
-            K,
-            retirement_error,
-            prediction_error
-            ) in results:
+    plt.figure(
+        figsize=(8, 5)
+    )
 
-        print(
-            f"{K:2d}    "
-            f"{retirement_error:.4f}        "
-            f"{prediction_error:.4f}"
-        )
+    plt.plot(
+        K_values,
+        silhouette_scores,
+        marker='o',
+        linewidth=2
+    )
+
+    plt.axvline(
+        best_K,
+        linestyle='--',
+        color='red',
+        label=f'Best K = {best_K}'
+    )
+
+    plt.xlabel(
+        "Number of Clusters (K)"
+    )
+
+    plt.ylabel(
+        "Silhouette Score"
+    )
+
+    plt.title(
+        "Silhouette Analysis for QB Career Clusters"
+    )
+
+    plt.grid(
+        True,
+        alpha=0.3
+    )
+
+    plt.legend()
+
+    plt.tight_layout()
+
+    plt.savefig(
+        "QB_Silhouette_Analysis.png"
+    )
+
+    plt.show()
 
 
-main()
+main_silhouette()
