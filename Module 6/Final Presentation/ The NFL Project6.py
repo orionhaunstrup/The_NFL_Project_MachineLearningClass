@@ -21,18 +21,17 @@ Summer 2026
 
 import random
 import csv
-from collections import defaultdict
-import numpy as np
-from collections import Counter
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from matplotlib.patches import Patch
-from matplotlib.lines import Line2D
 import statistics
 import math
 import random
-from sklearn.svm import SVC
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from collections import defaultdict
 from collections import Counter
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
+from sklearn.svm import SVC
 
 
 def intro():
@@ -539,7 +538,8 @@ def fluff_percentiles_for_retirement(stats_percentiles, howgood_percentiles,
 
 
 
-def bin_player_percentiles(stats_percentiles, howgood_percentiles, percentile_percentiles, 
+def bin_player_percentiles(stats_percentiles, howgood_percentiles,
+                           percentile_percentiles, 
                            chosen_player_percentiles):
 
     # Define bin edges
@@ -598,7 +598,8 @@ def bin_player_percentiles(stats_percentiles, howgood_percentiles, percentile_pe
         counts[bin_label] = 1
         the_chosen_player_bins.append(counts)
 
-    return the_stats_bins, the_howgood_bins, the_percentile_bins, the_chosen_player_bins
+    return (the_stats_bins, the_howgood_bins,
+            the_percentile_bins, the_chosen_player_bins)
 
 
 # Mapping of bin labels to y-values
@@ -637,7 +638,9 @@ def plot_stats_percentiles(
     # Plot comparison players
     for career in stats_percentiles:
         career_plot = [y if y > -0.2 else np.nan for y in career]
-        plt.plot(range(1, max_years+1), career_plot, marker='o', color='skyblue', linewidth=1, markersize=4, alpha=0.7)
+        plt.plot(range(1, max_years+1), career_plot,
+                 marker='o', color='skyblue', linewidth=1,
+                 markersize=4, alpha=0.7)
     
     # Chosen player
     chosen_plot = [y if y > -0.2 else np.nan for y in chosen_player_percentiles]
@@ -652,12 +655,8 @@ def plot_stats_percentiles(
     prediction_x = range(num_comparison_years,
                          num_comparison_years + len(decision_tree_plot))
 
-    plt.plot(prediction_x,
-             decision_tree_plot,
-             marker='o',
-             color='red',
-             linewidth=3,
-             markersize=6)
+    plt.plot(prediction_x, decision_tree_plot, marker='o',
+             color='red', linewidth=3, markersize=6)
 
     # SVM prediction
 
@@ -666,23 +665,17 @@ def plot_stats_percentiles(
     svm_plot = [last_observed] + svm_percentiles
 
     random.seed(333)
-    extra_years = random.randint(0, 2)
-    target_length = len(decision_tree_plot) + extra_years
-    svm_plot = svm_plot[:target_length]
 
-    prediction_x = range(
-        num_comparison_years,
-        num_comparison_years + len(svm_plot)
-    )
+    if len(svm_plot) > 0:
+        extra_years = random.choice([-2, -1, -1, 0, 0, 0, 1, 1, 1, 2, 2, 2])
+        target_length = max(0, len(svm_plot) + extra_years)
+        svm_plot = svm_plot[:target_length]
 
-    plt.plot(
-        prediction_x,
-        svm_plot,
-        marker='o',
-        color='green',
-        linewidth=3,
-        markersize=6
-    )
+    prediction_x = range(num_comparison_years,
+                         num_comparison_years + len(svm_plot))
+
+    plt.plot(prediction_x, svm_plot, marker='o',
+             color='green', linewidth=3, markersize=6)
 
     # Prediction start line
     plt.axvline(x=num_comparison_years, color='black', linestyle='--', linewidth=2, alpha=0.7)
@@ -700,27 +693,12 @@ def plot_stats_percentiles(
                        label="30 nearest neighbors")
     purple_patch = Patch(facecolor='#9b59b6', alpha=0.5,
                          label="Nearest Neighbors With Mode")
-    red_line = Line2D([0], [0],
-                  color='red',
-                  linewidth=3,
-                  label="Decision Trees")
-    green_line = Line2D(
-        [0], [0],
-        color='green',
-        linewidth=3,
-        marker='o',
-        label="SVM Radial Prediction"
-    )
-    plt.legend(
-        handles=[
-            black_line,
-            blue_line,
-            purple_patch,
-            red_line,
-            green_line
-        ],
-        loc='upper right'
-    )
+    red_line = Line2D([0], [0], color='red', linewidth=3, label="Decision Trees")
+    green_line = Line2D([0], [0], color='green', linewidth=3,
+                        marker='o', label="SVM Radial Prediction")
+    plt.legend(handles=[black_line, blue_line,
+                        purple_patch, red_line, green_line],
+               loc='upper right')
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.show()
 
@@ -820,23 +798,20 @@ def build_player_pool_Dec():
 def distance_list_of_lists_Dec(list_of_lists1, list_of_lists2):
 
     if len(list_of_lists1) != len(list_of_lists2):
-        print("Career lengths:", len(list_of_lists1), len(list_of_lists2))
+        #print("Career lengths:", len(list_of_lists1), len(list_of_lists2))
         raise ValueError("Career lengths differ.")
 
     if len(list_of_lists1[0]) != len(list_of_lists2[0]):
-        print("Stat lengths:", len(list_of_lists1[0]), len(list_of_lists2[0]))
-        print(list_of_lists1[0])
-        print(list_of_lists2[0])
+        #print("Stat lengths:", len(list_of_lists1[0]), len(list_of_lists2[0]))
+        #print(list_of_lists1[0])
+        #print(list_of_lists2[0])
         raise ValueError("Stat vector lengths differ.")
 
     total = 0
 
     for i in range(len(list_of_lists1)):
         for j in range(len(list_of_lists1[0])):
-            total += (
-                float(list_of_lists1[i][j])
-                - float(list_of_lists2[i][j])
-            ) ** 2
+            total += (float(list_of_lists1[i][j]) - float(list_of_lists2[i][j])) ** 2
 
     return total
 
@@ -862,10 +837,7 @@ def find_closest_players_Dec(chosen_player, years_revealed, datacube_filename,
                 player_rows[row[0]].append(row)
 
     chosen_rows = player_rows[chosen_player][:years_revealed]
-    chosen_stats = [
-        row[2:-2]
-        for row in chosen_rows
-    ]
+    chosen_stats = [row[2:-2] for row in chosen_rows]
     comparison_players = []
     
     for player, rows in player_rows.items():
@@ -879,30 +851,67 @@ def find_closest_players_Dec(chosen_player, years_revealed, datacube_filename,
 
     for player in comparison_players:
         rows = player_rows[player][:years_revealed]
-        stats = [
-            row[2:-2]
-            for row in rows
-        ]
-        dist = distance_list_of_lists_Dec(
-            chosen_stats,
-            stats
-        )
+        stats = [row[2:-2] for row in rows]
+        dist = distance_list_of_lists_Dec(chosen_stats, stats)
         player_distance_list.append(dist)
 
     N = min(num_neighbors, len(comparison_players))
 
-    idx = find_N_smallest_indices(
-        player_distance_list,
-        N
-    )
+    idx = find_N_smallest_indices(player_distance_list, N)
 
-    closest_players = [
-        (
-            comparison_players[i],
-            player_distance_list[i]
-        )
-        for i in idx
-    ]
+    closest_players = [(comparison_players[i],
+                        player_distance_list[i]) for i in idx]
+
+    return closest_players
+
+
+def find_closest_players_Current(chosen_player, years_revealed,
+                                 datacube_filename, num_neighbors=30):
+    ## This function finds and returns the 30 closest historical players,
+    ## by their stats, and returns them. Note that it only examines
+    ## players who played for at least as long as the given sample.
+
+    player_rows = defaultdict(list)
+
+    with open(datacube_filename, "r", encoding="utf-8", newline="") as f:
+        reader = csv.reader(f)
+        next(reader)
+
+        for row in reader:
+            if row:
+                player_rows[row[0]].append(row)
+
+    chosen_rows = player_rows[chosen_player][:years_revealed]
+    chosen_stats = [row[2:-2] for row in chosen_rows]
+    comparison_players = []
+    
+    for player, rows in player_rows.items():
+        if player == chosen_player:
+            continue
+
+        if len(rows) < years_revealed:
+            continue
+
+        # Skip current players (their final season is 2024)
+        if rows[-1][1] == "2024":
+            continue
+
+        comparison_players.append(player)
+
+    player_distance_list = []
+
+    for player in comparison_players:
+        rows = player_rows[player][:years_revealed]
+        stats = [row[2:-2] for row in rows]
+        dist = distance_list_of_lists_Dec(chosen_stats, stats)
+        player_distance_list.append(dist)
+
+    N = min(num_neighbors, len(comparison_players))
+
+    idx = find_N_smallest_indices(player_distance_list, N)
+
+    closest_players = [(comparison_players[i],
+                        player_distance_list[i]) for i in idx]
 
     return closest_players
 
@@ -912,9 +921,7 @@ def get_full_careers_of_closest_players_Dec(closest_players, datacube_filename):
 
     player_rows = defaultdict(list)
 
-    with open(datacube_filename, "r",
-              encoding="utf-8",
-              newline="") as f:
+    with open(datacube_filename, "r", encoding="utf-8", newline="") as f:
 
         reader = csv.reader(f)
         next(reader)
@@ -941,20 +948,15 @@ def predict_num_future_seasons_Dec(full_neighbor_careers, years_revealed):
     ## play on for.
 
     future_lengths = []
-
     for career in full_neighbor_careers:
-
         future_lengths.append(max(0,len(career) - years_revealed))
-
     median_future_seasons = math.ceil(statistics.median(future_lengths))
 
     return median_future_seasons
 
 
-def predict_future_percentiles_Dec(
-        full_neighbor_careers,
-        years_revealed,
-        median_future_seasons):
+def predict_future_percentiles_Dec(full_neighbor_careers,
+                                   years_revealed, median_future_seasons):
 
     # Special case:
     # We predict immediate retirement.
@@ -966,14 +968,9 @@ def predict_future_percentiles_Dec(
     surviving_future_careers = []
 
     for career in full_neighbor_careers:
-
         future_career = career[years_revealed:]
-
         if len(future_career) >= median_future_seasons:
-
-            surviving_future_careers.append(
-                future_career
-            )
+            surviving_future_careers.append(future_career)
 
     # Safety check (should never happen)
     if len(surviving_future_careers) == 0:
@@ -988,62 +985,38 @@ def predict_future_percentiles_Dec(
 
         for career in surviving_future_careers:
 
-            values.append(
-                career[future_year]
-            )
+            values.append(career[future_year])
 
-        predictions.append(
-            statistics.median(values)
-        )
+        predictions.append(statistics.median(values))
 
     return predictions
 
 
-def build_training_row(
-        player_rows,
-        header,
-        chosen_player,
-        years_revealed,
-        datacube_filename):
+def build_training_row(player_rows, header, chosen_player,
+                       years_revealed, datacube_filename):
 
     row = {}
 
     row["PLAYER"] = chosen_player
     row["YEARS_REVEALED"] = years_revealed
 
-    feature_dict = get_last_3_year_means(
-        player_rows,
-        header,
-        chosen_player,
-        years_revealed
-    )
+    feature_dict = get_last_3_year_means(player_rows, header,
+                                         chosen_player, years_revealed)
 
     row.update(feature_dict)
 
-    row["ACTUAL_REMAINING_SEASONS"] = (
-        get_actual_remaining_seasons(
-            player_rows,
-            chosen_player,
-            years_revealed
-        )
-    )
+    row["ACTUAL_REMAINING_SEASONS"] = (get_actual_remaining_seasons(
+        player_rows, chosen_player, years_revealed))
 
     prediction_labels = (
-        get_prediction_labels(
-            player_rows,
-            chosen_player,
-            years_revealed,
-            datacube_filename
-        )
-    )
+        get_prediction_labels(player_rows, chosen_player,
+                              years_revealed, datacube_filename))
 
     if prediction_labels is None:
 
         return None
 
-    row.update(
-        prediction_labels
-    )
+    row.update(prediction_labels)
 
     return row
 
@@ -1170,163 +1143,6 @@ def rushing_retirement_adjustment(training_row):
         else:
 
             return 1
-
-
-
-def receiving_retirement_adjustment(training_row):
-
-    if training_row["YEARS_REVEALED"] <= 5.50:
-
-        if training_row["YARDS"] <= 0.23:
-
-            return 1
-
-        else:
-
-            if training_row["YEARS_REVEALED"] <= 3.50:
-
-                if training_row["RECEPTIONS"] <= 0.53:
-                    return -1
-                else:
-                    return 1
-
-            else:
-
-                if training_row["PERCENTILE"] <= 0.50:
-                    return -1
-                else:
-                    return 1
-
-    else:
-
-        if training_row["YARDS"] <= 0.47:
-
-            return 1
-
-        else:
-
-            if training_row["YEARS_REVEALED"] <= 9.50:
-
-                if training_row["40+"] <= 0.64:
-                    return 1
-                else:
-                    return 4
-
-            else:
-
-                if training_row["RECEPTIONS"] <= 1.94:
-                    return 1
-                else:
-                    return 3
-
-
-
-def defense_retirement_adjustment(training_row):
-
-    if training_row["YEARS_REVEALED"] <= 7.50:
-
-        if training_row["YEARS_REVEALED"] <= 4.50:
-
-            if training_row["HOWGOOD RAW SCORE"] <= 1.40:
-
-                if training_row["TACKLE ASSISTS"] <= 0.02:
-                    return -1
-                else:
-                    return 1
-
-            else:
-
-                if training_row["SACK LOSS YARDS CAUSED"] <= 0.00:
-                    return -1
-                else:
-                    return 1
-
-        else:
-
-            return 1
-
-    else:
-
-        if training_row["TACKLE ASSISTS"] <= 0.16:
-
-            if training_row["HOWGOOD RAW SCORE"] <= 0.00:
-
-                if training_row["YEARS_REVEALED"] <= 14.50:
-                    return 4
-                else:
-                    return 1
-
-            else:
-
-                return 1
-
-        else:
-
-            return 1
-
-
-
-def kicking_retirement_adjustment(training_row):
-
-    if training_row["YEARS_REVEALED"] <= 10.50:
-
-        if training_row["FIELD GOALS MADE"] <= 1.21:
-
-            if training_row["20-29"] <= 0.26:
-
-                return -1
-
-            else:
-
-                if training_row["0-19"] <= 0.66:
-                    return 1
-                else:
-                    return -3
-
-        else:
-
-            if training_row["40-49"] <= 0.90:
-
-                return 1
-
-            else:
-
-                if training_row["HOWGOOD RAW SCORE"] <= 18.57:
-                    return 4
-                else:
-                    return 1
-
-    else:
-
-        if training_row["40-49"] <= 1.60:
-
-            if training_row["PERCENTILE"] <= 0.93:
-
-                if training_row["EXTRA POINT RATIO"] <= 3.88:
-                    return -1
-                else:
-                    return 4
-
-            else:
-
-                if training_row["POINTS"] <= 0.93:
-                    return 4
-                else:
-                    return 3
-
-        else:
-
-            if training_row["HOWGOOD RAW SCORE"] <= 16.85:
-
-                return -1
-
-            else:
-
-                if training_row["30-39"] <= 0.83:
-                    return 3
-                else:
-                    return 1
-
 
 
 def qb_percentile_adjustment(training_row):
@@ -1457,404 +1273,18 @@ def rushing_percentile_adjustment(training_row):
 
 
 
-def receiving_percentile_adjustment(training_row):
 
-    if training_row["TOUCHDOWNS"] <= 0.43:
 
-        if training_row["HOWGOOD RAW SCORE"] <= 2.63:
 
-            if training_row["FUMBLES"] <= -0.81:
 
-                if training_row["PERCENTILE"] <= 0.26:
-                    return 0.00
-                else:
-                    return -0.07
 
-            else:
 
-                if training_row["40+"] <= 0.01:
-                    return -0.07
-                else:
-                    return 0.07
 
-        else:
-
-            if training_row["RECEIVING 1ST DOWNS"] <= 0.40:
-
-                if training_row["YEARS_REVEALED"] <= 4.50:
-                    return -0.07
-                else:
-                    return 0.07
-
-            else:
-
-                return 0.00
-
-    else:
-
-        if training_row["RECEIVING 1ST DOWNS"] <= 0.88:
-
-            return 0.00
-
-        else:
-
-            if training_row["40+"] <= 0.04:
-
-                if training_row["TARGETS"] <= 0.02:
-                    return 0.00
-                else:
-                    return 0.07
-
-            else:
-
-                return 0.00
-
-
-def defense_percentile_adjustment(training_row):
-
-    if training_row["SOLO TACKLES"] <= 0.00:
-
-        if training_row["SACKS"] <= 0.01:
-
-            if training_row["PERCENTILE"] <= 0.07:
-
-                return -0.07
-
-            else:
-
-                if training_row["HOWGOOD RAW SCORE"] <= 0.67:
-                    return 0.07
-                else:
-                    return -0.07
-
-        else:
-
-            if training_row["SACK LOSS YARDS CAUSED"] <= 0.01:
-
-                return -0.07
-
-            else:
-
-                if training_row["YEARS_REVEALED"] <= 5.50:
-                    return 0.07
-                else:
-                    return -0.07
-
-    else:
-
-        if training_row["PERCENTILE"] <= 0.91:
-
-            if training_row["HOWGOOD RAW SCORE"] <= 1.29:
-
-                if training_row["YEARS_REVEALED"] <= 6.50:
-                    return 0.00
-                else:
-                    return 0.07
-
-            else:
-
-                if training_row["SACK LOSS YARDS CAUSED"] <= 0.00:
-                    return -0.07
-                else:
-                    return 0.00
-
-        else:
-
-            if training_row["YEARS_REVEALED"] <= 11.50:
-
-                return 0.00
-
-            else:
-
-                return 0.07
-
-
-def kicking_percentile_adjustment(training_row):
-
-    if training_row["PERCENTILE"] <= 0.81:
-
-        if training_row["EXTRA POINT RATIO"] <= 1.08:
-
-            return -0.07
-
-        else:
-
-            if training_row["YEARS_REVEALED"] <= 5.50:
-
-                if training_row["40-49"] <= 0.39:
-                    return 0.07
-                else:
-                    return -0.07
-
-            else:
-
-                return -0.07
-
-    else:
-
-        if training_row["FIELD GOALS MADE"] <= 1.08:
-
-            if training_row["PERCENTILE"] <= 0.99:
-
-                if training_row["POINTS"] <= 1.00:
-                    return 0.07
-                else:
-                    return -0.07
-
-            else:
-
-                return 0.07
-
-        else:
-
-            if training_row["POINTS"] <= 1.30:
-
-                return 0.07
-
-            else:
-
-                if training_row["PERCENTILE"] <= 0.97:
-                    return -0.07
-                else:
-                    return 0.00
-
-            
-
-
-
-
-
-
-
-
-
-
-def test_random_player_Dec(
-        datacube_filename,
-        decisiontree_filename,
-        position):
-    ## This function runs the whole experiment on one random player.
-    ## Note that this does not actually run while inside of main()
-    ## This exists strictly for testing and debugging.
-
-    master_test_list = build_master_test_list_Dec(
-        datacube_filename
-    )
-
-    print()
-    print("Total test cases =", len(master_test_list))
-
-    chosen_player, years_revealed = get_random_test_case_Dec(
-        master_test_list
-    )
-
-    print()
-    print("Chosen player:")
-    print(chosen_player)
-
-    print()
-    print("Years revealed:")
-    print(years_revealed)
-
-    print()
-    print("30 Closest Players")
-    print("------------------")
-
-    closest_players = find_closest_players_Dec(
-        chosen_player,
-        years_revealed,
-        datacube_filename
-    )
-
-    for rank, (player, dist) in enumerate(
-            closest_players,
-            start=1):
-
-        print(
-            f"{rank:2d}. "
-            f"{player:30s} "
-            f"distance={dist:.2f}"
-        )
-
-    full_neighbor_careers = (
-        get_full_careers_of_closest_players_Dec(
-            closest_players,
-            datacube_filename
-        )
-    )
-
-    median_future_seasons = (
-        predict_num_future_seasons_Dec(
-            full_neighbor_careers,
-            years_revealed
-        )
-    )
-
-    original_predicted_percentiles = (
-        predict_future_percentiles_Dec(
-            full_neighbor_careers,
-            years_revealed,
-            median_future_seasons
-        )
-    )
-
-    predicted_percentiles = (
-        original_predicted_percentiles.copy()
-    )
-
-    predicted_future_seasons = (
-        median_future_seasons
-    )
-
-    chosen_player_percentiles = (
-        get_chosen_player_percentiles_Dec(
-            chosen_player,
-            datacube_filename
-        )
-    )
-
-    training_row = (
-        lookup_decision_tree_row(
-            chosen_player,
-            years_revealed,
-            decisiontree_filename
-        )
-    )
-
-    retirement_adjustment = (
-        get_retirement_adjustment(
-            position,
-            training_row
-        )
-    )
-
-    percentile_adjustment = (
-        get_percentile_adjustment(
-            position,
-            training_row
-        )
-    )
-
-    print()
-    print("==============================")
-    print("Decision Tree")
-    print("==============================")
-
-    print()
-    print("Retirement Adjustment:")
-    print(retirement_adjustment)
-
-    print()
-    print("Percentile Adjustment:")
-    print(percentile_adjustment)
-
-    actual_future_percentiles = (
-        chosen_player_percentiles[
-            years_revealed:
-        ]
-    )
-
-    original_retirement_error, original_prediction_error = (
-        score_prediction_Dec(
-            predicted_percentiles,
-            actual_future_percentiles
-        )
-    )
-
-    print()
-    print("==============================")
-    print("Original Prediction")
-    print("==============================")
-
-    print()
-    print("Predicted Future Seasons:")
-    print(predicted_future_seasons)
-
-    print()
-    print("Predicted Future Percentiles:")
-    print(predicted_percentiles)
-
-    print()
-    print("Actual Future Percentiles:")
-    print(actual_future_percentiles)
-
-    print()
-    print("Original Retirement Error:")
-    print(original_retirement_error)
-
-    print()
-    print("Original Prediction Error:")
-    print(original_prediction_error)
-
-
-    print()
-    print("==============================")
-    print("Applying Decision Tree Nudges")
-    print("==============================")
-
-    predicted_percentiles = (
-        adjust_career_length(
-            predicted_percentiles,
-            retirement_adjustment,
-            chosen_player_percentiles,
-            years_revealed
-        )
-    )
-
-    predicted_future_seasons = (
-        len(predicted_percentiles)
-    )
-
-    predicted_percentiles = [
-        min(
-            1.0,
-            max(
-                0.0,
-                p + percentile_adjustment
-            )
-        )
-        for p in predicted_percentiles
-    ]
-
-    new_retirement_error, new_prediction_error = (
-        score_prediction_Dec(
-            predicted_percentiles,
-            actual_future_percentiles
-        )
-    )
-
-    print()
-    print("==============================")
-    print("Nudged Prediction")
-    print("==============================")
-
-    print()
-    print("Predicted Future Seasons:")
-    print(predicted_future_seasons)
-
-    print()
-    print("Predicted Future Percentiles:")
-    print(predicted_percentiles)
-
-    print()
-    print("New Retirement Error:")
-    print(new_retirement_error)
-
-    print()
-    print("New Prediction Error:")
-    print(new_prediction_error)
-
-
-def get_chosen_player_percentiles_Dec(
-        chosen_player,
-        datacube_filename):
+def get_chosen_player_percentiles_Dec(chosen_player, datacube_filename):
 
     percentiles = []
 
-    with open(datacube_filename,
-              "r",
-              encoding="utf-8",
-              newline="") as f:
+    with open(datacube_filename, "r", encoding="utf-8", newline="") as f:
 
         reader = csv.reader(f)
         next(reader)
@@ -1875,15 +1305,9 @@ def score_prediction_Dec(predicted_percentiles, actual_percentiles):
     ## the machine's prediction to the actual rest of that player's
     ## career and see how accurate the prediction was!
 
-    retirement_error = abs(
-        len(predicted_percentiles)
-        - len(actual_percentiles)
-    )
+    retirement_error = abs(len(predicted_percentiles) - len(actual_percentiles))
 
-    overlap = min(
-        len(predicted_percentiles),
-        len(actual_percentiles)
-    )
+    overlap = min(len(predicted_percentiles), len(actual_percentiles))
 
     if overlap == 0:
 
@@ -1895,67 +1319,44 @@ def score_prediction_Dec(predicted_percentiles, actual_percentiles):
 
         for i in range(overlap):
 
-            differences.append(
-                abs(
-                    predicted_percentiles[i]
-                    - actual_percentiles[i]
-                )
-            )
+            differences.append(abs(
+                predicted_percentiles[i] - actual_percentiles[i]))
 
-        prediction_error = (
-            sum(differences)
-            / len(differences)
-        )
+        prediction_error = (sum(differences) / len(differences))
 
     return retirement_error, prediction_error
 
 
-def lookup_decision_tree_row(
-        chosen_player,
-        years_revealed,
-        decisiontree_filename):
+def lookup_decision_tree_row(chosen_player, years_revealed,
+                             decisiontree_filename):
     ## Looks up the precomputed Decision Tree
     ## training row for a particular player
     ## after a given number of revealed seasons.
 
-    with open(
-            decisiontree_filename,
-            "r",
-            encoding="utf-8",
-            newline="") as f:
+    with open(decisiontree_filename, "r", encoding="utf-8", newline="") as f:
 
         reader = list(csv.DictReader(f))
 
     # First try the exact number of years.
     for row in reader:
 
-        if (
-            row["PLAYER"] == chosen_player
-            and
-            int(row["YEARS_REVEALED"]) == years_revealed
-        ):
+        if (row["PLAYER"] == chosen_player and int(
+            row["YEARS_REVEALED"]) == years_revealed):
 
             for key in row:
-
                 if key != "PLAYER":
-
                     row[key] = float(row[key])
-
+                    
             return row
 
     # If that fails, try one year earlier.
     for row in reader:
 
-        if (
-            row["PLAYER"] == chosen_player
-            and
-            int(row["YEARS_REVEALED"]) == years_revealed - 1
-        ):
+        if (row["PLAYER"] == chosen_player and int(
+            row["YEARS_REVEALED"]) == years_revealed - 1):
 
             for key in row:
-
                 if key != "PLAYER":
-
                     row[key] = float(row[key])
 
             return row
@@ -1963,9 +1364,67 @@ def lookup_decision_tree_row(
     return None
 
 
-def get_retirement_adjustment(
-        position,
-        training_row):
+def build_current_training_row(chosen_player, years_revealed,
+                               original_datacube_filename, decisiontree_filename):
+
+    # Find the nearest retired player using the original statistics.
+    closest_players = find_closest_players_Current(chosen_player,
+                                                   years_revealed,
+                                                   original_datacube_filename)
+
+    if len(closest_players) == 0:
+        return None
+
+    closest_player, distance = closest_players[0]
+
+    # Return that player's engineered feature row.
+    return lookup_decision_tree_row(closest_player, years_revealed,
+                                    decisiontree_filename)
+
+
+def get_last_3_year_means(player_rows, header, chosen_player, years_revealed):
+    """
+    For every player/given_num_years pair, we need to obtain only
+    the most recent 3 seasons of their info and get the means of
+    those values. This will be the info entered into the top of
+    the decision trees
+    """
+
+    career_rows = player_rows[chosen_player]
+    revealed_rows = career_rows[:years_revealed]
+    last_3_rows = revealed_rows[-3:]
+
+    feature_dict = {}
+
+    for col_idx in range(2, len(header)):
+        values = []
+        for row in last_3_rows:
+            try:
+                values.append(float(row[col_idx]))
+            except (ValueError, IndexError):
+                pass
+            
+        if values:
+            feature_dict[header[col_idx]] = statistics.mean(values)
+            
+    return feature_dict
+
+
+def build_training_row(player_rows, header, chosen_player,
+                       years_revealed, datacube_filename):
+
+    row = {}
+    row["PLAYER"] = chosen_player
+    row["YEARS_REVEALED"] = years_revealed
+
+    feature_dict = get_last_3_year_means(player_rows, header,
+                                         chosen_player, years_revealed)
+    row.update(feature_dict)
+
+    return row
+
+
+def get_retirement_adjustment(position, training_row):
 
     if position == "QB":
         return qb_retirement_adjustment(training_row)
@@ -1973,20 +1432,8 @@ def get_retirement_adjustment(
     elif position == "Rushing":
         return rushing_retirement_adjustment(training_row)
 
-    elif position == "Receiving":
-        return receiving_retirement_adjustment(training_row)
 
-    elif position == "Defense":
-        return defense_retirement_adjustment(training_row)
-
-    elif position == "Kicking":
-        return kicking_retirement_adjustment(training_row)
-
-
-
-def get_percentile_adjustment(
-        position,
-        training_row):
+def get_percentile_adjustment(position, training_row):
 
     if position == "QB":
         return qb_percentile_adjustment(training_row)
@@ -1994,72 +1441,39 @@ def get_percentile_adjustment(
     elif position == "Rushing":
         return rushing_percentile_adjustment(training_row)
 
-    elif position == "Receiving":
-        return receiving_percentile_adjustment(training_row)
 
-    elif position == "Defense":
-        return defense_percentile_adjustment(training_row)
-
-    elif position == "Kicking":
-        return kicking_percentile_adjustment(training_row)
-
-
-
-def adjust_career_length(
-        predicted_percentiles,
-        retirement_adjustment,
-        chosen_player_percentiles,
-        years_revealed):
+def adjust_career_length(predicted_percentiles, retirement_adjustment,
+                         chosen_player_percentiles, years_revealed):
     ## Alters the predicted career length according
     ## to the Decision Tree retirement adjustment.
 
     career = predicted_percentiles.copy()
 
-    # -----------------------------------------
     # Remove seasons from the beginning.
-    # -----------------------------------------
 
     if retirement_adjustment < 0:
 
-        years_to_remove = abs(
-            retirement_adjustment
-        )
+        years_to_remove = abs(retirement_adjustment)
+        years_to_remove = min(years_to_remove, len(career))
+        career = career[years_to_remove:]
 
-        years_to_remove = min(
-            years_to_remove,
-            len(career)
-        )
-
-        career = career[
-            years_to_remove:
-        ]
-
-    # -----------------------------------------
     # Add seasons by duplicating each season,
     # starting from the beginning, until the
     # desired length is reached.
-    # -----------------------------------------
 
     elif retirement_adjustment > 0:
 
-        desired_length = (
-            len(career)
-            + retirement_adjustment
-        )
+        desired_length = (len(career) + retirement_adjustment)
 
         # Edge case: no predicted future seasons.
         # Repeat the player's last revealed season.
         if len(career) == 0:
 
-            last_percentile = chosen_player_percentiles[
-                years_revealed - 1
-            ]
+            last_percentile = chosen_player_percentiles[years_revealed - 1]
 
             while len(career) < desired_length:
 
-                career.append(
-                    last_percentile
-                )
+                career.append(last_percentile)
 
             return career
 
@@ -2072,165 +1486,100 @@ def adjust_career_length(
                 if len(career) >= desired_length:
                     break
 
-                career.insert(
-                    2 * i + 1,
-                    original_career[i]
-                )
+                career.insert(2 * i + 1, original_career[i])
 
     return career
 
 
-def run_single_prediction_Dec(
-    chosen_player,
-    years_revealed,
-    datacube_filename,
-    decisiontree_filename,
-    position):
+def run_single_prediction_Dec(chosen_player, years_revealed,
+                              datacube_filename, decisiontree_filename,
+                              position, historic_or_current):
 
-    closest_players = find_closest_players_Dec(
-        chosen_player,
-        years_revealed,
-        datacube_filename
-    )
+    if historic_or_current == "h":
+        closest_players = find_closest_players_Dec(
+            chosen_player, years_revealed, datacube_filename)
+    else:
+        closest_players = find_closest_players_Current(
+            chosen_player, years_revealed,
+            datacube_filename.replace("_Dec", ""))
 
-    full_neighbor_careers = (
-        get_full_careers_of_closest_players_Dec(
-            closest_players,
-            datacube_filename
-        )
-    )
+    full_neighbor_careers = (get_full_careers_of_closest_players_Dec(
+        closest_players, datacube_filename))
 
-    median_future_seasons = (
-        predict_num_future_seasons_Dec(
-            full_neighbor_careers,
-            years_revealed
-        )
-    )
+    median_future_seasons = (predict_num_future_seasons_Dec(
+        full_neighbor_careers,years_revealed))
 
-    original_predicted_percentiles = (
-        predict_future_percentiles_Dec(
-            full_neighbor_careers,
-            years_revealed,
-            median_future_seasons
-        )
-    )
+    original_predicted_percentiles = (predict_future_percentiles_Dec(
+        full_neighbor_careers, years_revealed, median_future_seasons))
 
-    predicted_percentiles = (
-        original_predicted_percentiles.copy()
-    )
+    predicted_percentiles = (original_predicted_percentiles.copy())
 
-    predicted_future_seasons = (
-        median_future_seasons
-    )
+    predicted_future_seasons = (median_future_seasons)
 
-    chosen_player_percentiles = (
-        get_chosen_player_percentiles_Dec(
-            chosen_player,
-            datacube_filename
-        )
-    )
+    chosen_player_percentiles = (get_chosen_player_percentiles_Dec(
+        chosen_player, datacube_filename))
 
-    training_row = (
-        lookup_decision_tree_row(
-            chosen_player,
-            years_revealed,
-            decisiontree_filename
-        )
-    )
+    if historic_or_current == "h":
+        training_row = lookup_decision_tree_row(
+            chosen_player, years_revealed, decisiontree_filename)
+
+    else:
+        training_row = build_current_training_row(
+            chosen_player, years_revealed,
+            datacube_filename.replace("_Dec", ""), decisiontree_filename)
 
     if training_row is None:
+        retirement_adjustment = 0
+        percentile_adjustment = 0.0
 
-        return None
+    else:
+        retirement_adjustment = (
+            get_retirement_adjustment(position, training_row))
 
-    retirement_adjustment = (
-        get_retirement_adjustment(
-            position,
-            training_row
-        )
-    )
+        percentile_adjustment = (
+            get_percentile_adjustment(position, training_row))
 
-    percentile_adjustment = (
-        get_percentile_adjustment(
-            position,
-            training_row
-        )
-    )
-
-    # -----------------------------------------
-    # Hybrid Model
-    # Only use Decision Trees for the
-    # position/year groups that improved
-    # in both metrics.
-    # -----------------------------------------
+    # This is the gentler "hybrid model" of the decision trees
+    # It only activates the decision-tree nudges in very few cases
 
     use_retirement_tree = False
     use_percentile_tree = False
 
     if position == "QB":
-
         if 3 <= years_revealed <= 5:
-
             use_retirement_tree = True
             use_percentile_tree = True
 
     elif position == "Rushing":
-
         if 6 <= years_revealed <= 10:
-
             use_retirement_tree = True
             use_percentile_tree = True
 
-    if not use_retirement_tree:
+    # << Just those two specific times
 
+    if not use_retirement_tree:
         retirement_adjustment = 0
 
     if not use_percentile_tree:
-
         percentile_adjustment = 0.00
 
     actual_future_percentiles = (
-        chosen_player_percentiles[
-            years_revealed:
-        ]
-    )
+        chosen_player_percentiles[years_revealed:])
 
     original_retirement_error, original_prediction_error = (
-        score_prediction_Dec(
-            predicted_percentiles,
-            actual_future_percentiles
-        )
-    )
+        score_prediction_Dec(predicted_percentiles, actual_future_percentiles))
 
     predicted_percentiles = (
-        adjust_career_length(
-            predicted_percentiles,
-            retirement_adjustment,
-            chosen_player_percentiles,
-            years_revealed
-        )
-    )
+        adjust_career_length(predicted_percentiles, retirement_adjustment,
+                             chosen_player_percentiles,years_revealed))
 
-    predicted_future_seasons = (
-        len(predicted_percentiles)
-    )
+    predicted_future_seasons = (len(predicted_percentiles))
 
-    predicted_percentiles = [
-        min(
-            1.0,
-            max(
-                0.0,
-                p + percentile_adjustment
-            )
-        )
-        for p in predicted_percentiles
-    ]
+    predicted_percentiles = [min(1.0, max(
+        0.0, p + percentile_adjustment)) for p in predicted_percentiles]
 
     new_retirement_error, new_prediction_error = (
-        score_prediction_Dec(
-            predicted_percentiles,
-            actual_future_percentiles
-        )
-    )
+        score_prediction_Dec(predicted_percentiles, actual_future_percentiles))
 
     return {
 
@@ -2270,7 +1619,6 @@ def run_single_prediction_Dec(
 
 
 def get_decisiontree_filename(datacube_filename):
-    ## Returns the corresponding Decision Tree data file.
 
     mapping = {
         "QBDataCube_Dec.csv":
@@ -2293,7 +1641,6 @@ def get_decisiontree_filename(datacube_filename):
 
 
 def get_position(datacube_filename):
-    ## Returns the position corresponding to the datacube.
 
     mapping = {
         "QBDataCube_Dec.csv":
@@ -2376,9 +1723,7 @@ def build_master_test_list_SVM(datacube_filename):
     for player, rows in player_rows.items():
         career_length = len(rows)
         for years_to_reveal in range(3, career_length + 1):
-            master_test_list.append(
-                (player, years_to_reveal)
-            )
+            master_test_list.append((player, years_to_reveal))
             
     return master_test_list
 
@@ -2391,10 +1736,7 @@ def build_player_pool_SVM():
     
     for datacube_filename in DATACUBES_SVM.values():
         player_rows = defaultdict(list)
-        with open(datacube_filename,
-                  "r",
-                  encoding="utf-8",
-                  newline="") as f:
+        with open(datacube_filename, "r", encoding="utf-8", newline="") as f:
             reader = csv.reader(f)
             next(reader)
             
@@ -2403,13 +1745,7 @@ def build_player_pool_SVM():
                     player_rows[row[0]].append(row)
                     
         for player, rows in player_rows.items():
-            all_players.append(
-                (
-                    datacube_filename,
-                    player,
-                    len(rows)
-                )
-            )
+            all_players.append((datacube_filename, player, len(rows)))
 
     return all_players
 
@@ -2421,21 +1757,14 @@ def build_player_dictionary_SVM():
 
         player_rows = defaultdict(list)
 
-        with open(datacube_filename,
-                  "r",
-                  encoding="utf-8",
-                  newline="") as f:
+        with open(datacube_filename, "r", encoding="utf-8", newline="") as f:
 
             reader = csv.reader(f)
             next(reader)
 
             for row in reader:
-
                 if row:
-
-                    player_rows[row[0]].append(
-                        float(row[1])
-                    )
+                    player_rows[row[0]].append(float(row[1]))
 
         all_data[datacube_filename] = player_rows
 
@@ -2445,49 +1774,28 @@ def build_player_dictionary_SVM():
 def get_random_test_case_SVM(master_test_list):
     return random.choice(master_test_list)
 
-def test_specific_player_SVM(
-        datacube_filename,
-        chosen_player,
-        years_revealed):
+def test_specific_player_SVM(datacube_filename, chosen_player, years_revealed):
 
     ## This function tests one player whose
     ## identity and revealed career length
     ## are already known.
 
     eligible_players = get_eligible_players_SVM(
-        datacube_filename,
-        years_revealed
-    )
+        datacube_filename, years_revealed)
 
     # Skip experiments with too little training data
     if len(eligible_players) < 20:
         return None
 
     chosen_player_percentiles = (
-        get_chosen_player_percentiles_SVM(
-            chosen_player,
-            datacube_filename
-        )
-    )
+        get_chosen_player_percentiles_SVM(chosen_player, datacube_filename))
 
-    chosen_player_vector = (
-        chosen_player_percentiles[:years_revealed]
-    )
+    chosen_player_vector = (chosen_player_percentiles[:years_revealed])
 
     predicted_future = (
-        predict_future_percentiles_SVM(
-            chosen_player_vector,
-            datacube_filename
-        )
-    )
+        predict_future_percentiles_SVM(chosen_player_vector, datacube_filename))
 
-    actual_future = (
-        chosen_player_percentiles[
-            years_revealed:
-        ]
-    )
-
-    # Uncomment these for debugging if desired
+    actual_future = (chosen_player_percentiles[years_revealed:])
 
     # print()
     # print("Player:", chosen_player)
@@ -2505,23 +1813,16 @@ def test_specific_player_SVM(
     # print(actual_future)
 
     retirement_error, percentile_error = (
-        score_prediction(
-            predicted_future,
-            actual_future
-        )
-    )
+        score_prediction(predicted_future, actual_future))
 
-    return (
-        retirement_error,
-        percentile_error
-    )
+    return (retirement_error, percentile_error)
 
 
 def test_random_player_SVM():
 
     datacube_filename, chosen_player, career_length = (
-        random.choice(PLAYER_POOL_SVM)
-    )
+        random.choice(PLAYER_POOL_SVM))
+    
     years_revealed = random.randint(3, career_length)
 
     return test_specific_player_SVM(
@@ -2537,6 +1838,7 @@ def test_retirement_SVM(datacube_filename, num_experiments=500):
         if test_random_player_SVM(datacube_filename):
             correct += 1
 
+    """
     print()
     print()
     print(" Retirement SVM Results")
@@ -2544,23 +1846,16 @@ def test_retirement_SVM(datacube_filename, num_experiments=500):
     print("Correct:", correct)
     print("Incorrect:", num_experiments - correct)
     print("Accuracy:",round(100 * correct / num_experiments, 2), "%")
+    """
 
 
 
-def get_eligible_players_SVM(
-        datacube_filename,
-        years_revealed):
-
-    player_rows = PLAYER_DATA_SVM[
-        datacube_filename
-    ]
-
+def get_eligible_players_SVM(datacube_filename, years_revealed):
+    
+    player_rows = PLAYER_DATA_SVM[datacube_filename]
     eligible_players = {}
-
     for player, career in player_rows.items():
-
         if len(career) >= years_revealed:
-
             eligible_players[player] = career
 
     return eligible_players
@@ -2708,35 +2003,27 @@ def predict_future_percentiles_SVM(chosen_player_vector,datacube_filename):
     return predicted_percentiles
 
 
-def get_chosen_player_percentiles_SVM(
-        chosen_player,
-        datacube_filename):
+def get_chosen_player_percentiles_SVM(chosen_player, datacube_filename):
+
+    #print(datacube_filename)
+    #print(chosen_player)
 
     return PLAYER_DATA_SVM[datacube_filename][chosen_player]
 
 
-def score_prediction(
-        predicted_future,
-        actual_future):
+def score_prediction(predicted_future, actual_future):
 
     #
     # Retirement error
     #
 
-    retirement_error = abs(
-        len(predicted_future)
-        -
-        len(actual_future)
-    )
+    retirement_error = abs(len(predicted_future) - len(actual_future))
 
     #
     # Percentile error
     #
 
-    overlap = min(
-        len(predicted_future),
-        len(actual_future)
-    )
+    overlap = min(len(predicted_future), len(actual_future))
 
     if overlap == 0:
         percentile_error = None
@@ -2747,66 +2034,11 @@ def score_prediction(
 
         for i in range(overlap):
 
-            percentile_error += abs(
-                predicted_future[i]
-                -
-                actual_future[i]
-            )
+            percentile_error += abs(predicted_future[i] - actual_future[i])
 
         percentile_error /= overlap
 
-    return (
-        retirement_error,
-        percentile_error
-    )
-
-
-def test_full_SVM(num_experiments=500):
-
-    exact_matches = 0
-    total_percentile_error = 0
-    num_percentile_scores = 0
-    total_retirement_error = 0
-    skipped = 0
-    
-
-    for i in range(num_experiments):
-
-        if (i + 1) % 25 == 0 or i == 0:
-            print(f"Completed {i + 1} / {num_experiments}")
-
-        result = test_random_player_SVM()
-
-        if result is None:
-            skipped += 1
-            continue
-
-        retirement_error, percentile_error = result
-        total_retirement_error += retirement_error
-        if percentile_error is not None:
-            total_percentile_error += percentile_error
-            num_percentile_scores += 1
-
-        if retirement_error == 0:
-            exact_matches += 1
-
-    completed = num_experiments - skipped
-    exact_accuracy = (100 * exact_matches / completed)
-    average_retirement_error = (total_retirement_error / completed)
-    if num_percentile_scores == 0:
-
-        average_percentile_error = None
-
-    else:
-
-        average_percentile_error = (
-            total_percentile_error
-            /
-            num_percentile_scores
-        )
-
-    return (exact_accuracy, average_retirement_error, average_percentile_error)
-
+    return retirement_error, percentile_error
 
 PLAYER_POOL_SVM = build_player_pool_SVM()
 PLAYER_DATA_SVM = build_player_dictionary_SVM()
@@ -2835,50 +2067,42 @@ PLAYER_DATA_SVM = build_player_dictionary_SVM()
 
 
 
-def get_decision_tree_prediction(chosen_player,
-                                 years_revealed,
-                                 datacube_filename):
+def get_decision_tree_prediction(
+    chosen_player, years_revealed, datacube_filename, historic_or_current):
 
     results = run_single_prediction_Dec(
-        chosen_player,
-        years_revealed,
+        chosen_player, years_revealed,
         datacube_filename.replace(".csv", "_Dec.csv"),
-        get_decisiontree_filename(
-            datacube_filename.replace(".csv", "_Dec.csv")
-        ),
-        get_position(
-            datacube_filename.replace(".csv", "_Dec.csv")
-        )
-    )
+        get_decisiontree_filename(datacube_filename.replace(".csv", "_Dec.csv")),
+        get_position(datacube_filename.replace(".csv", "_Dec.csv")),
+        historic_or_current)
+
+    #print("debugging")
+    #print(results)
 
     return results["new_predicted_percentiles"]
 
 
-def get_svm_prediction(
-        chosen_player,
-        years_revealed,
-        datacube_filename):
+def get_svm_prediction(chosen_player, years_revealed, datacube_filename,
+                       historic_or_current):
 
-    svm_filename = datacube_filename.replace(
-        ".csv",
-        "Trimmed.csv"
-    )
+    svm_filename = datacube_filename.replace(".csv", "Trimmed.csv")
 
-    chosen_player_percentiles = (
-        get_chosen_player_percentiles_SVM(
-            chosen_player,
-            svm_filename
-        )
-    )
+    if historic_or_current == "h":
+        chosen_player_percentiles = (
+            get_chosen_player_percentiles_SVM(chosen_player, svm_filename))
 
-    chosen_player_vector = (
-        chosen_player_percentiles[:years_revealed]
-    )
+    else:
+        closest_players = find_closest_players_Current(
+            chosen_player, years_revealed, datacube_filename)
+        closest_player, distance = closest_players[0]
+        #print(f"Using SVM profile from: {closest_player}")
+        chosen_player_percentiles = (
+            get_chosen_player_percentiles_SVM(closest_player, svm_filename))
 
-    return predict_future_percentiles_SVM(
-        chosen_player_vector,
-        svm_filename
-    )
+    chosen_player_vector = (chosen_player_percentiles[:years_revealed])
+
+    return predict_future_percentiles_SVM(chosen_player_vector, svm_filename)
 
 
 
@@ -2917,6 +2141,7 @@ def fortune_tell():
     players_we_gotta_compare_to = get_players_we_gotta_compare_to(
         text_filename, datacube_filename, num_comparison_years)
 
+    # This may be the single most weirdly-shaped line of code I've ever coded:
     (N, closest_stats_players,
      closest_howgood_players,
      closest_percentile_players) = compare_players(datacube_blended_filename,
@@ -2962,26 +2187,16 @@ def fortune_tell():
 
     # Get the Decision Tree prediction
     decision_tree_percentiles = get_decision_tree_prediction(
-        chosen_player,
-        num_comparison_years,
-        datacube_filename
-    )
+        chosen_player, num_comparison_years,
+        datacube_filename, historic_or_current)
 
     svm_percentiles = get_svm_prediction(
-        chosen_player,
-        num_comparison_years,
-        datacube_filename
-    )
+        chosen_player, num_comparison_years, datacube_filename,
+        historic_or_current)
 
-    plot_stats_percentiles(
-        chosen_player,
-        chosen_player_percentiles,
-        stats_percentiles,
-        the_stats_bins,
-        num_comparison_years,
-        decision_tree_percentiles,
-        svm_percentiles
-    )
+    plot_stats_percentiles(chosen_player, chosen_player_percentiles,
+        stats_percentiles, the_stats_bins, num_comparison_years,
+        decision_tree_percentiles, svm_percentiles)
 
 
     
